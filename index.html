@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Amateurfunk-Formular</title>
+</head>
+<body>
+    <h1>Amateurfunk-Formular</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+    <form method="POST" action="/">
+        <label for="rufzeichen">Rufzeichen:</label>
+        <input type="text" id="rufzeichen" name="rufzeichen" required>
+        <br>
+        <label for="frequenz">Frequenz in MHz:</label>
+        <input type="number" id="frequenz" name="frequenz" step="0.0001" min="0" required>
+        <br>
+        <label for="betriebsart">Betriebsart:</label>
+        <select id="betriebsart" name="betriebsart" required>
+            <option value="DMR">DMR</option>
+            <option value="FM">FM</option>
+            <option value="SSB">SSB</option>
+            <option value="FT8">FT8</option>
+        </select>
+        <br>
+        <input type="submit" value="Eintragen">
+    </form>
+    <hr>
+    <h2>Aktuelle Einträge</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Rufzeichen</th>
+                <th>Frequenz</th>
+                <th>Betriebsart</th>
+                <th>Zeit (UTC)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rufzeichen, data in entries.items() %}
+                <tr>
+                    <td>{{ rufzeichen }}</td>
+                    <td>{{ data['frequenz'] }} MHz</td>
+                    <td>{{ data['betriebsart'] }}</td>
+                    <td>{{ data['timestamp'][:19] }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

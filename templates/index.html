@@ -44,8 +44,23 @@
             $.getJSON("/data", function(data){
                 var tableBody = $("table tbody");
                 tableBody.empty();
-                $.each(data, function(rufzeichen, entry){
-                    var row = "<tr><td>" + rufzeichen + "</td><td>" + entry.frequenz + "</td><td>" + entry.betriebsart + "</td><td>" + entry.timestamp + "</td><td>" + entry.minutes_ago + "</td></tr>";
+                $.each(data.data, function(index, entry){
+                    var now = new Date();
+                    var timestamp = new Date(entry.timestamp);
+                    var diff = Math.abs(now - timestamp); // in milliseconds
+
+                    var diffMinutes = Math.floor((diff/1000)/60);
+                    var diffHours = Math.floor(diffMinutes/60);
+
+                    var diffDisplay;
+                    if (diffHours > 0) {
+                        var remainingMinutes = diffMinutes - (diffHours * 60);
+                        diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
+                    } else {
+                        diffDisplay = diffMinutes + " Minute(n)";
+                    }
+
+                    var row = "<tr><td>" + entry.callsign + "</td><td>" + entry.frequency + "</td><td>" + entry.mode + "</td><td>" + entry.timestamp + "</td><td>" + diffDisplay + "</td></tr>";
                     tableBody.append(row);
                 });
             });
@@ -53,6 +68,4 @@
         updateTable(); // Beim Laden der Seite ausführen
         setInterval(updateTable, 30000); // Alle 30 Sekunden ausführen
     });
-    </script>
-</body>
-</html>
+    </

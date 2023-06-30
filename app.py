@@ -1,34 +1,33 @@
-from flask import Flask, request, render_template, make_response, redirect, url_for, jsonify
-import json
-import threading
+from flask import Flask, render_template, request, redirect, url_for, make_response
+import shelve
 import datetime
-from datetime import timedelta
+import threading
 import time
-from requests import get
 
 app = Flask(__name__)
-db = {}
+db = shelve.open('database.db', writeback=True)
 
 def cleanup_thread():
     while True:
         now = datetime.datetime.utcnow()
-        to_delete = [callsign for callsign, data in db.items() if now - data['timestamp'] > timedelta(hours=24)]
-        for callsign in to_delete:
-            del db[callsign]
+
+        for key in list(db.keys()):
+            if (now - db[key]['timestamp']).total_seconds() > 600:
+                del db[key]
+
         time.sleep(60)
 
-cleanup_thread = threading.Thread(target=cleanup_thread)
-cleanup_thread.start()
+threading.Thread(target=cleanup_thread, daemon=True).start()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        callsign = request.form.get('callsign')
+        callsign = request.form.get('callsign', '')
         frequency = request.form.get('frequency')
         mode = request.form.get('mode')
 
-        # Sicherstellen, dass 'frequency' einen Wert hat, bevor es konvertiert wird
         if frequency:
+            frequency = frequency.replace(',', '.')
             frequency = round(float(frequency), 4)
         else:
             frequency = 0
@@ -54,9 +53,19 @@ def index():
 
     return render_template('index.html', callsign=callsign, frequency=frequency, mode=mode)
 
-@app.route('/data', methods=['GET'])
+@app.route('/data')
 def data():
-    return jsonify(db)
+    return {
+        'data': [
+            {
+                'callsign': entry['callsign'],
+                'frequency': entry['frequency'],
+                'mode': entry['mode'],
+                'timestamp': entry['timestamp'].isoformat() + 'Z',
+            }
+            for entry in db.values()
+        ]
+    }
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

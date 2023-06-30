@@ -24,8 +24,14 @@ cleanup_thread.start()
 def index():
     if request.method == 'POST':
         callsign = request.form.get('callsign')
-        frequency = round(float(request.form.get('frequency')), 4)
+        frequency = request.form.get('frequency')
         mode = request.form.get('mode')
+
+        # Sicherstellen, dass 'frequency' einen Wert hat, bevor es konvertiert wird
+        if frequency:
+            frequency = round(float(frequency), 4)
+        else:
+            frequency = 0
 
         resp = make_response(redirect(url_for('index')))
 

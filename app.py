@@ -26,9 +26,9 @@ def cleanup_thread():
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        callsign = request.form.get('callsign')
-        frequency = request.form.get('frequency')
-        mode = request.form.get('mode')
+        callsign = request.form.get('callsign', '')
+        frequency = request.form.get('frequency', '')
+        mode = request.form.get('mode', '')
         if callsign and frequency and mode and validate_callsign(callsign):
             stations[callsign] = {
                 'frequency': round(float(frequency), 4),
@@ -41,9 +41,9 @@ def index():
         resp.set_cookie('mode', mode)
         return resp
     else:
-        callsign = request.cookies.get('callsign')
-        frequency = request.cookies.get('frequency')
-        mode = request.cookies.get('mode')
+        callsign = request.cookies.get('callsign', '')
+        frequency = request.cookies.get('frequency', '')
+        mode = request.cookies.get('mode', '')
         return render_template('index.html', stations=stations, callsign=callsign, frequency=frequency, mode=mode)
 
 @app.route('/update', methods=['GET'])

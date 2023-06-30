@@ -42,6 +42,7 @@
     $(document).ready(function(){
         function updateTable() {
             $.getJSON("/data", function(data){
+                console.log("test");
                 var tableBody = $("table tbody");
                 tableBody.empty();
                 $.each(data.data, function(index, entry){

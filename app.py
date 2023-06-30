@@ -27,11 +27,11 @@ def cleanup_thread():
 def index():
     if request.method == 'POST':
         callsign = request.form.get('callsign')
-        frequency = round(float(request.form.get('frequency')), 4)
+        frequency = request.form.get('frequency')
         mode = request.form.get('mode')
-        if validate_callsign(callsign):
+        if callsign and frequency and mode and validate_callsign(callsign):
             stations[callsign] = {
-                'frequency': frequency,
+                'frequency': round(float(frequency), 4),
                 'mode': mode,
                 'timestamp': datetime.datetime.utcnow()
             }
@@ -53,4 +53,4 @@ def update():
 if __name__ == '__main__':
     cleanup = threading.Thread(target=cleanup_thread)
     cleanup.start()
-    app.run(port=8080)
+    app.run(host='0.0.0.0', port=8080)

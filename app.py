@@ -46,8 +46,8 @@ def index():
         mode = request.cookies.get('mode', '')
         return render_template('index.html', stations=stations, callsign=callsign, frequency=frequency, mode=mode)
 
-@app.route('/update', methods=['GET'])
-def update():
+@app.route('/data', methods=['GET'])
+def data():
     return jsonify(stations)
 
 if __name__ == '__main__':

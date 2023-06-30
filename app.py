@@ -5,22 +5,33 @@ import threading
 import time
 
 app = Flask(__name__)
-db = sqlite3.connect('datenbank.db', check_same_thread=False)
+db_path = 'datenbank.db'
 
 def create_table():
-    db.execute('''CREATE TABLE IF NOT EXISTS eintraege (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    rufzeichen TEXT NOT NULL,
-                    frequenz REAL NOT NULL,
-                    betriebsart TEXT NOT NULL,
-                    zeitstempel TEXT NOT NULL)''')
-    db.commit()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS eintraege (
+            rufzeichen TEXT PRIMARY KEY,
+            frequenz REAL,
+            betriebsart TEXT,
+            zeitstempel TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 def cleanup_thread():
     while True:
         now = datetime.datetime.utcnow()
-        db.execute("DELETE FROM eintraege WHERE strftime('%s', 'now') - strftime('%s', zeitstempel) > 600")
-        db.commit()
+
+        # Entfernen Sie Einträge, die älter als 10 Minuten sind
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM eintraege WHERE strftime('%s', 'now') - strftime('%s', zeitstempel) > 600")
+        conn.commit()
+        conn.close()
+
         time.sleep(60)
 
 threading.Thread(target=cleanup_thread, daemon=True).start()
@@ -38,17 +49,19 @@ def index():
         else:
             frequenz = 0
 
-        zeitstempel = datetime.datetime.utcnow().isoformat()
-
-        db.execute("INSERT INTO eintraege (rufzeichen, frequenz, betriebsart, zeitstempel) VALUES (?, ?, ?, ?)",
-                   (rufzeichen, frequenz, betriebsart, zeitstempel))
-        db.commit()
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO eintraege (rufzeichen, frequenz, betriebsart, zeitstempel)
+            VALUES (?, ?, ?, ?)
+        ''', (rufzeichen, frequenz, betriebsart, datetime.datetime.utcnow().isoformat()))
+        conn.commit()
+        conn.close()
 
         resp = make_response(redirect(url_for('index')))
         resp.set_cookie('rufzeichen', rufzeichen)
         resp.set_cookie('frequenz', str(frequenz))
         resp.set_cookie('betriebsart', betriebsart)
-
         return resp
 
     rufzeichen = request.cookies.get('rufzeichen', '')
@@ -59,35 +72,24 @@ def index():
 
 @app.route('/data')
 def data():
-    cursor = db.execute("SELECT * FROM eintraege ORDER BY zeitstempel DESC")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM eintraege")
     rows = cursor.fetchall()
-    cursor.close()
+    conn.close()
 
     data = []
     for row in rows:
-        eintrag = {
-            'rufzeichen': row[1],
-            'frequenz': row[2],
-            'betriebsart': row[3],
-            'zeitstempel': row[4],
-            'minuten_seit_eintrag': berechne_minuten_seit_eintrag(row[4])
+        rufzeichen, frequenz, betriebsart, zeitstempel = row
+        entry = {
+            'rufzeichen': rufzeichen,
+            'frequenz': frequenz,
+            'betriebsart': betriebsart,
+            'zeitstempel': zeitstempel,
         }
-        data.append(eintrag)
+        data.append(entry)
 
     return {'data': data}
-
-def berechne_minuten_seit_eintrag(zeitstempel):
-    now = datetime.datetime.utcnow()
-    eintrag_zeit = datetime.datetime.fromisoformat(zeitstempel)
-    delta = now - eintrag_zeit
-    minuten = delta.total_seconds() // 60
-
-    if minuten < 60:
-        return f'{int(minuten)} Minuten'
-    else:
-        stunden = minuten // 60
-        minuten %= 60
-        return f'{int(stunden)} Stunden, {int(minuten)} Minuten'
 
 if __name__ == '__main__':
     create_table()

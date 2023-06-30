@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Amateurfunk-Stationen - Daten</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Amateurfunk-Stationen - Daten</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Rufzeichen</th>
+                <th>Frequenz</th>
+                <th>Betriebsart</th>
+                <th>Zeitstempel</th>
+                <th>Minuten seit Eintrag</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+    $(document).ready(function(){
+        function updateTable() {
+            $.getJSON("/data", function(data){
+                var tableBody = $("table tbody");
+                tableBody.empty();
+                $.each(data.data, function(index, entry){
+                    var row = "<tr><td>" + entry.rufzeichen + "</td><td>" + entry.frequenz + "</td><td>" + entry.betriebsart + "</td><td>" + entry.zeitstempel + "</td><td>" + entry.minuten_seit_eintrag + "</td></tr>";
+                    tableBody.append(row);
+                });
+            });
+        }
+        updateTable(); // Beim Laden der Seite ausführen
+        setInterval(updateTable, 30000); // Alle 30 Sekunden ausführen
+    });
+    </script>
+</body>
+</html>

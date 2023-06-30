@@ -1,58 +1,85 @@
-from flask import Flask, request, render_template, make_response
-import time
+from flask import Flask, render_template, request, redirect, url_for, make_response
+from datetime import datetime
 import sqlite3
-from sqlite3 import Error
+from contextlib import closing
+import threading
+import time
+
+DATABASE = 'datenbank.db'
 
 app = Flask(__name__)
 
-def create_connection():
-    conn = None;
-    try:
-        conn = sqlite3.connect('database.db')       # Name der SQLite-Datenbank-Datei
-        print(sqlite3.version)
-    except Error as e:
-        print(e)
-    return conn
+def connect_db():
+    return sqlite3.connect(DATABASE)
 
-def create_table(conn):
-    try:
-        sql_create_table = """ CREATE TABLE IF NOT EXISTS qso (
-                                            id integer PRIMARY KEY AUTOINCREMENT,
-                                            time text NOT NULL,
-                                            callsign text NOT NULL,
-                                            frequency real NOT NULL
-                                        ); """
-        if conn is not None:
-            c = conn.cursor()
-            c.execute(sql_create_table)
-    except Error as e:
-        print(e)
+def init_db():
+    with closing(connect_db()) as db:
+        with app.open_resource('schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
 
-@app.route("/", methods=['GET', 'POST'])
+@app.before_first_request
+def initialize_database():
+    init_db()
+
+def cleanup_thread():
+    while True:
+        now = datetime.utcnow()
+        with closing(connect_db()) as db:
+            db.execute("DELETE FROM entries WHERE strftime('%s', 'now') - strftime('%s', timestamp) > 600")
+            db.commit()
+        time.sleep(60)
+
+threading.Thread(target=cleanup_thread, daemon=True).start()
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    conn = create_connection()
-    create_table(conn)
     if request.method == 'POST':
-        callsign = request.form.get('callsign')
-        frequency = round(float(request.form.get('frequency').replace(",", ".")), 4)
-        cur = conn.cursor()
-        cur.execute("INSERT INTO qso (time, callsign, frequency) VALUES (?, ?, ?)",
-                    (time.strftime("%Y-%m-%d %H:%M:%S"), callsign, frequency))
-        conn.commit()
-        resp = make_response(render_template('index.html'))
-        resp.set_cookie('callsign', callsign)
+        rufzeichen = request.form.get('rufzeichen', '')
+        frequenz = request.form.get('frequenz', '')
+        betriebsart = request.form.get('betriebsart', '')
+
+        if frequenz:
+            frequenz = frequenz.replace(',', '.')
+            frequenz = round(float(frequenz), 4)
+        else:
+            frequenz = 0
+
+        with closing(connect_db()) as db:
+            db.execute("INSERT INTO entries (rufzeichen, frequenz, betriebsart, timestamp) VALUES (?, ?, ?, ?)",
+                       (rufzeichen, frequenz, betriebsart, datetime.utcnow()))
+            db.commit()
+
+        resp = make_response(redirect(url_for('index')))
+        resp.set_cookie('rufzeichen', rufzeichen)
+        resp.set_cookie('frequenz', str(frequenz))
+        resp.set_cookie('betriebsart', betriebsart)
+
         return resp
-    else:
-        callsign = request.cookies.get('callsign')
-        return render_template('index.html', callsign=callsign)
 
-@app.route("/data", methods=['GET'])
+    rufzeichen = request.cookies.get('rufzeichen', '')
+    frequenz = request.cookies.get('frequenz', '')
+    betriebsart = request.cookies.get('betriebsart', '')
+
+    return render_template('index.html', rufzeichen=rufzeichen, frequenz=frequenz, betriebsart=betriebsart)
+
+@app.route('/data')
 def data():
-    conn = create_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM qso ORDER BY time DESC LIMIT 10")
-    rows = cur.fetchall()
-    return render_template('data.html', rows=rows)
+    with closing(connect_db()) as db:
+        cursor = db.execute("SELECT rufzeichen, frequenz, betriebsart, timestamp FROM entries")
+        entries = cursor.fetchall()
+        data = []
+        for entry in entries:
+            rufzeichen, frequenz, betriebsart, timestamp = entry
+            minutes_ago = int((datetime.utcnow() - datetime.fromisoformat(timestamp)).total_seconds() / 60)
+            data.append({
+                'rufzeichen': rufzeichen,
+                'frequenz': frequenz,
+                'betriebsart': betriebsart,
+                'timestamp': timestamp,
+                'minutes_ago': minutes_ago,
+            })
+        return {'data': data}
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

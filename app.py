@@ -1,77 +1,55 @@
-import re
-import json
+import datetime
+import threading
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, render_template, request, flash
-from datetime import datetime, timedelta
+from flask import Flask, request, render_template, make_response, jsonify
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Setzen Sie hier einen geheimen Schlüssel für die Flask-Anwendung
+stations = {}
 
-entries = {}
-entries_file = 'entries.json'
+def validate_callsign(callsign):
+    url = f"https://ans.bundesnetzagentur.de/Amateurfunk/Rufzeichen.aspx"
+    payload = {'Rufzeichen': callsign}
+    response = requests.get(url, params=payload)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    return bool(soup.find('span', text=callsign))
 
-def load_entries():
-    try:
-        with open(entries_file, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-def save_entries(entries):
-    with open(entries_file, 'w') as f:
-        json.dump(entries, f)
-
-def is_valid_call_sign(call_sign):
-    url = 'https://ans.bundesnetzagentur.de/Amateurfunk/Rufzeichen.aspx'
-    payload = {
-        '__EVENTTARGET': '',
-        '__EVENTARGUMENT': '',
-        'ctl00$ContentPlaceHolder1$tbxCallsign': call_sign,
-        'ctl00$ContentPlaceHolder1$btnSubmit': 'Suchen'
-    }
-
-    session = requests.Session()
-    response = session.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    # Extrahiere die benötigten ViewState und EventValidation Felder
-    payload['__VIEWSTATE'] = soup.find('input', {'name': '__VIEWSTATE'})['value']
-    payload['__VIEWSTATEGENERATOR'] = soup.find('input', {'name': '__VIEWSTATEGENERATOR'})['value']
-    payload['__EVENTVALIDATION'] = soup.find('input', {'name': '__EVENTVALIDATION'})['value']
-
-    response = session.post(url, data=payload)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    result_table = soup.find('table', {'id': 'ctl00_ContentPlaceHolder1_gvCallSign'})
-
-    return result_table is not None and len(result_table.find_all('tr')) > 1
+def cleanup_thread():
+    while True:
+        current_time = datetime.datetime.utcnow()
+        keys_to_delete = [key for key, value in stations.items() if (current_time - value['timestamp']).total_seconds() > 24*60*60]
+        for key in keys_to_delete:
+            del stations[key]
+        time.sleep(60)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    global entries
-    entries = load_entries()
-
-    now = datetime.utcnow()
-
-    # Entferne Einträge, die älter als 24 Stunden sind
-    entries = {k: v for k, v in entries.items() if now - datetime.fromisoformat(v['timestamp']) < timedelta(hours=24)}
-
     if request.method == 'POST':
-        rufzeichen = request.form['rufzeichen']
-        frequenz = format(float(request.form['frequenz']), '.4f')
-        betriebsart = request.form['betriebsart']
-
-        if is_valid_call_sign(rufzeichen):
-            entries[rufzeichen] = {
-                'frequenz': frequenz,
-                'betriebsart': betriebsart,
-                'timestamp': now.isoformat()
+        callsign = request.form.get('callsign')
+        frequency = round(float(request.form.get('frequency')), 4)
+        mode = request.form.get('mode')
+        if validate_callsign(callsign):
+            stations[callsign] = {
+                'frequency': frequency,
+                'mode': mode,
+                'timestamp': datetime.datetime.utcnow()
             }
-            save_entries(entries)
-        else:
-            flash('Ungültiges Rufzeichen. Bitte geben Sie ein gültiges Rufzeichen ein.')
+        resp = make_response(render_template('index.html', stations=stations))
+        resp.set_cookie('callsign', callsign)
+        resp.set_cookie('frequency', str(frequency))
+        resp.set_cookie('mode', mode)
+        return resp
+    else:
+        callsign = request.cookies.get('callsign')
+        frequency = request.cookies.get('frequency')
+        mode = request.cookies.get('mode')
+        return render_template('index.html', stations=stations, callsign=callsign, frequency=frequency, mode=mode)
 
-    return render_template('index.html', entries=entries, now=now)
+@app.route('/update', methods=['GET'])
+def update():
+    return jsonify(stations)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    cleanup = threading.Thread(target=cleanup_thread)
+    cleanup.start()
+    app.run(port=8080)

@@ -19,6 +19,16 @@
         tr:nth-child(even) {
             background-color: #f2f2f2;
         }
+        /* Größere Eingabefelder */
+        input[type="text"], input[type="number"], select {
+            width: 100%; /* Volle Breite */
+            padding: 10px; /* Innenpolsterung */
+        }
+        /* Abstand zwischen dem Submit-Button und der Tabelle */
+        input[type="submit"] {
+            display: block; /* Blockelement, damit der Abstand funktioniert */
+            margin-bottom: 20px; /* Abstand unter dem Button */
+        }
     </style>
 </head>
 <body>
@@ -38,7 +48,7 @@
             <option value="C4FM">C4FM</option>
             <!-- Rest der Betriebsarten... -->
         </select><br>
-        <input type="submit" value="Submit">
+        <input type="submit" value="Absenden">
     </form>
     <table>
         <thead>

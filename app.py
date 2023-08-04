@@ -15,6 +15,7 @@ def create_table():
             rufzeichen TEXT PRIMARY KEY,
             frequenz REAL,
             betriebsart TEXT,
+            talkgroup TEXT,
             zeitstempel TEXT
         )
     ''')
@@ -42,6 +43,7 @@ def index():
         rufzeichen = request.form.get('rufzeichen', '')
         frequenz = request.form.get('frequenz')
         betriebsart = request.form.get('betriebsart')
+        talkgroup = request.form.get('talkgroup') if betriebsart == 'DMR' else None
 
         if frequenz:
             frequenz = frequenz.replace(',', '.')
@@ -52,9 +54,9 @@ def index():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT OR REPLACE INTO eintraege (rufzeichen, frequenz, betriebsart, zeitstempel)
-            VALUES (?, ?, ?, ?)
-        ''', (rufzeichen, frequenz, betriebsart, datetime.datetime.utcnow().isoformat()))
+            INSERT OR REPLACE INTO eintraege (rufzeichen, frequenz, betriebsart, talkgroup, zeitstempel)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (rufzeichen, frequenz, betriebsart, talkgroup, datetime.datetime.utcnow().isoformat()))
         conn.commit()
         conn.close()
 
@@ -80,11 +82,12 @@ def data():
 
     data = []
     for row in rows:
-        rufzeichen, frequenz, betriebsart, zeitstempel = row
+        rufzeichen, frequenz, betriebsart, talkgroup, zeitstempel = row
         entry = {
             'rufzeichen': rufzeichen,
             'frequenz': frequenz,
             'betriebsart': betriebsart,
+            'talkgroup': talkgroup,
             'zeitstempel': zeitstempel,
         }
         data.append(entry)

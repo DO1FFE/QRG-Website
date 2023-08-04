@@ -27,14 +27,8 @@
         tr:nth-child(even) {
             background-color: #e6f7ff;
         }
-        input[type="text"], input[type="number"], select {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-        }
-        label {
-            font-size: 16px;
+        label, input[type="text"], input[type="number"], select, input[type="submit"] {
+            margin-bottom: 10px;
         }
         input[type="submit"] {
             display: block;
@@ -55,11 +49,11 @@
     <h1>Amateurfunk-Stationen</h1>
     <form method="POST">
         <label for="rufzeichen">Rufzeichen:</label><br>
-        <input type="text" id="rufzeichen" name="rufzeichen" value="{{ rufzeichen }}"><br>
+        <input type="text" id="rufzeichen" name="rufzeichen" value="{{ rufzeichen }}" size="10"><br>
         <label for="frequenz">Frequenz in MHz:</label><br>
-        <input type="number" step="0.0001" id="frequenz" name="frequenz" value="{{ frequenz }}"><br>
+        <input type="number" step="0.0001" id="frequenz" name="frequenz" value="{{ frequenz }}" size="10"><br>
         <label for="betriebsart">Betriebsart:</label><br>
-        <select id="betriebsart" name="betriebsart">
+        <select id="betriebsart" name="betriebsart" style="max-width: 100%;">
             <option value="DMR">DMR</option>
             <option value="FM">FM</option>
             <option value="SSB">SSB</option>

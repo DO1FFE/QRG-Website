@@ -40,30 +40,37 @@
 
     <script>
     function updateTable() {
-        $.getJSON("/data", function(data) {
-            var tableBody = $("table tbody");
-            tableBody.empty();
-            $.each(data.data, function(index, entry) {
-                var now = new Date();
-                var timestamp = new Date(entry.zeitstempel);
-                var diff = Math.abs(now - timestamp);
+    $.getJSON("/data", function(data) {
+        var tableBody = $("table tbody");
+        tableBody.empty();
+        $.each(data.data, function(index, entry) {
+            var now = new Date();
+            var timestamp = new Date(entry.zeitstempel + "Z"); // UTC-Zeit
+            var diff = now - timestamp; // Zeitdifferenz in Millisekunden
 
-                var diffMinutes = Math.floor((diff / 1000) / 60);
-                var diffHours = Math.floor(diffMinutes / 60);
+            // Zeitstempel formatieren
+            var formattedTimestamp = ("0" + timestamp.getDate()).slice(-2) + "." +
+                                    ("0" + (timestamp.getMonth() + 1)).slice(-2) + "." +
+                                    timestamp.getFullYear() + " " +
+                                    ("0" + timestamp.getHours()).slice(-2) + ":" +
+                                    ("0" + timestamp.getMinutes()).slice(-2);
 
-                var diffDisplay;
-                if (diffHours > 0) {
-                    var remainingMinutes = diffMinutes - (diffHours * 60);
-                    diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
-                } else {
-                    diffDisplay = diffMinutes + " Minute(n)";
-                }
+            var diffMinutes = Math.floor((diff / 1000) / 60);
+            var diffHours = Math.floor(diffMinutes / 60);
 
-                var row = "<tr><td>" + entry.rufzeichen + "</td><td>" + entry.frequenz + "</td><td>" + entry.betriebsart + "</td><td>" + entry.zeitstempel + "</td><td>" + diffDisplay + "</td></tr>";
-                tableBody.append(row);
-            });
+            var diffDisplay;
+            if (diffHours > 0) {
+                var remainingMinutes = diffMinutes - (diffHours * 60);
+                diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
+            } else {
+                diffDisplay = diffMinutes + " Minute(n)";
+            }
+
+            var row = "<tr><td>" + entry.rufzeichen + "</td><td>" + entry.frequenz + "</td><td>" + entry.betriebsart + "</td><td>" + formattedTimestamp + "</td><td>" + diffDisplay + "</td></tr>";
+            tableBody.append(row);
         });
-    }
+    });
+}
     updateTable(); // Beim Laden der Seite ausführen
     setInterval(updateTable, 30000); // Alle 30 Sekunden ausführen
     </script>

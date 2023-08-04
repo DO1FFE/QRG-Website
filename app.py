@@ -60,10 +60,11 @@ def index():
         conn.commit()
         conn.close()
 
+        max_age = 365 * 24 * 60 * 60 # Ablaufdatum auf ein Jahr setzen
         resp = make_response(redirect(url_for('index')))
-        resp.set_cookie('rufzeichen', rufzeichen)
-        resp.set_cookie('frequenz', str(frequenz))
-        resp.set_cookie('betriebsart', betriebsart)
+        resp.set_cookie('rufzeichen', rufzeichen, max_age=max_age)
+        resp.set_cookie('frequenz', str(frequenz), max_age=max_age)
+        resp.set_cookie('betriebsart', betriebsart, max_age=max_age)
         return resp
 
     rufzeichen = request.cookies.get('rufzeichen', '')

@@ -51,12 +51,15 @@ def index():
         else:
             frequenz = 0
 
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
+        # Secure handling of user input using prepared statement
+        query = '''
             INSERT OR REPLACE INTO eintraege (rufzeichen, frequenz, betriebsart, talkgroup, zeitstempel)
             VALUES (?, ?, ?, ?, ?)
-        ''', (rufzeichen, frequenz, betriebsart, talkgroup, datetime.datetime.utcnow().isoformat()))
+        '''
+        params = (rufzeichen, frequenz, betriebsart, talkgroup, datetime.datetime.utcnow().isoformat())
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
         conn.commit()
         conn.close()
 

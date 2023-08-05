@@ -86,11 +86,7 @@
         </tbody>
     </table>
 
-    
-
-
-
-<script>
+ <script>
     $(document).ready(function(){
         $.get("/data", function(data) {
             var new_entries = data.new_entries;
@@ -112,45 +108,14 @@
         
         // Funktion zum Hinzufügen einer Zeile
         function addRow(entry, target) {
-            var date = new Date(entry.zeitstempel + 'Z'); // Hinzufügen eines 'Z', um UTC-Zeit anzugeben
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); // Anpassen an die lokale Zeitzone
-            var options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
-            var formattedDate = new Intl.DateTimeFormat('de-DE', options).format(date);
-
             var row = "<tr>";
             row += "<td>" + entry.rufzeichen + "</td>";
             row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
             row += "<td>" + entry.betriebsart + (entry.talkgroup ? " TG" + entry.talkgroup : "") + "</td>";
-            row += "<td>" + formattedDate + "</td>";
-            row += "<td>" + timeSince(date) + "</td>";
+            row += "<td>" + new Date(entry.zeitstempel).toLocaleString('de-DE') + "</td>";
+            row += "<td>" + entry.time_since + "</td>";
             row += "</tr>";
             $(target).append(row);
-        }
-        
-        // Funktion zur Berechnung der Zeit seit dem Eintrag
-        function timeSince(date) {
-            var seconds = Math.floor((new Date() - date) / 1000);
-            var interval = Math.floor(seconds / 31536000);
-            if (interval > 1) {
-                return interval + " Jahren";
-            }
-            interval = Math.floor(seconds / 2592000);
-            if (interval > 1) {
-                return interval + " Monaten";
-            }
-            interval = Math.floor(seconds / 86400);
-            if (interval > 1) {
-                return interval + " Tagen";
-            }
-            interval = Math.floor(seconds / 3600);
-            if (interval > 1) {
-                return interval + " Stunden";
-            }
-            interval = Math.floor(seconds / 60);
-            if (interval > 1) {
-                return interval + " Minuten";
-            }
-            return Math.floor(seconds) + " Sekunden";
         }
     });
 </script>

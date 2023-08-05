@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, make_response
 import sqlite3
 import datetime
-from datetime import timezone, timedelta
 import threading
 import time
 
@@ -23,18 +22,17 @@ def create_table():
     conn.commit()
     conn.close()
 
-def convert_to_local_timezone(utc_timestamp):
-    local_timezone = timezone(timedelta(hours=2)) # CET (Central European Time)
-    return utc_timestamp.replace(tzinfo=timezone.utc).astimezone(local_timezone)
-
 def cleanup_thread():
     while True:
         now = datetime.datetime.utcnow()
+
+        # Entfernen Sie Einträge, die älter als 60 Minuten sind
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM eintraege WHERE strftime('%s', 'now') - strftime('%s', zeitstempel) > 86400")
+        cursor.execute("DELETE FROM eintraege WHERE strftime('%s', 'now') - strftime('%s', zeitstempel) > 3600")
         conn.commit()
         conn.close()
+
         time.sleep(60)
 
 threading.Thread(target=cleanup_thread, daemon=True).start()
@@ -45,7 +43,7 @@ def index():
         rufzeichen = request.form.get('rufzeichen', '')
         frequenz = request.form.get('frequenz')
         betriebsart = request.form.get('betriebsart')
-        talkgroup = request.form.get('talkgroup')
+        talkgroup = request.form.get('talkgroup') if betriebsart == 'DMR' else None
 
         if frequenz:
             frequenz = frequenz.replace(',', '.')
@@ -62,10 +60,11 @@ def index():
         conn.commit()
         conn.close()
 
+        max_age = 365 * 24 * 60 * 60 # Ablaufdatum auf ein Jahr setzen
         resp = make_response(redirect(url_for('index')))
-        resp.set_cookie('rufzeichen', rufzeichen)
-        resp.set_cookie('frequenz', str(frequenz))
-        resp.set_cookie('betriebsart', betriebsart)
+        resp.set_cookie('rufzeichen', rufzeichen, max_age=max_age)
+        resp.set_cookie('frequenz', str(frequenz), max_age=max_age)
+        resp.set_cookie('betriebsart', betriebsart, max_age=max_age)
         return resp
 
     rufzeichen = request.cookies.get('rufzeichen', '')
@@ -82,26 +81,19 @@ def data():
     rows = cursor.fetchall()
     conn.close()
 
-    new_entries = []
-    old_entries = []
+    data = []
     for row in rows:
         rufzeichen, frequenz, betriebsart, talkgroup, zeitstempel = row
-        utc_timestamp = datetime.datetime.fromisoformat(zeitstempel)
-        local_timestamp = convert_to_local_timezone(utc_timestamp).isoformat()
         entry = {
             'rufzeichen': rufzeichen,
             'frequenz': frequenz,
             'betriebsart': betriebsart,
             'talkgroup': talkgroup,
-            'zeitstempel': local_timestamp,
+            'zeitstempel': zeitstempel,
         }
-        time_difference = (datetime.datetime.utcnow() - utc_timestamp).total_seconds()
-        if time_difference < 600: # Less than 10 minutes
-            new_entries.append(entry)
-        else:
-            old_entries.append(entry)
+        data.append(entry)
 
-    return {'new_entries': new_entries, 'old_entries': old_entries}
+    return {'data': data}
 
 if __name__ == '__main__':
     create_table()

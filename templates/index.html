@@ -59,10 +59,10 @@
         <input type="number" step="0.0001" id="frequenz" name="frequenz" size="10"><br>
         <label for="betriebsart">Betriebsart:</label><br>
         <select id="betriebsart" name="betriebsart" onchange="checkBetriebsart()" style="max-width: 100%;">
-            <option value="DMR">DMR</option>
             <option value="FM">FM</option>
             <option value="SSB">SSB</option>
             <option value="FT8">FT8</option>
+            <option value="DMR">DMR</option>
             <option value="D-STAR">D-STAR</option>
             <option value="C4FM">C4FM</option>
         </select><br>
@@ -85,52 +85,59 @@
         <tbody>
         </tbody>
     </table>
-<script>
-    $(document).ready(function(){
-        $.get("/data", function(data) {
-            var new_entries = data.new_entries;
-            var old_entries = data.old_entries;
-            
-            // Hinzufügen der neuen Einträge
-            new_entries.forEach(function(entry) {
-                addRow(entry, "tbody");
-            });
 
-            // Hinzufügen einer Trennlinie, wenn es alte Einträge gibt
-            if (old_entries.length > 0) {
-                $("tbody").append('<tr><td colspan="5" style="background-color: #999;"></td></tr>');
+    <script>
+        function checkBetriebsart() {
+            var selectedBetriebsart = document.getElementById('betriebsart').value;
+            if (selectedBetriebsart === 'DMR') {
+                document.getElementById('talkgroupDiv').style.display = 'block';
+            } else {
+                document.getElementById('talkgroupDiv').style.display = 'none';
             }
-            
-            // Hinzufügen der alten Einträge (ausgegraut)
-            old_entries.forEach(function(entry) {
-                addRow(entry, "tbody");
-            });
-        });
-        
-        // Funktion zum Hinzufügen einer Zeile
-        function addRow(entry, target) {
-            var zeitstempel = new Date(entry.zeitstempel);
-            var formattedDate = zeitstempel.getDate().toString().padStart(2, '0') + "." +
-                                (zeitstempel.getMonth() + 1).toString().padStart(2, '0') + "." +
-                                zeitstempel.getFullYear() + " " +
-                                zeitstempel.getHours().toString().padStart(2, '0') + ":" +
-                                zeitstempel.getMinutes().toString().padStart(2, '0');
-
-            var currentTime = new Date();
-            var timeDifference = currentTime - zeitstempel; // in milliseconds
-            var minutesSinceEntry = Math.floor(timeDifference / 60000);
-            var time_since = minutesSinceEntry + " Minuten";
-
-            var row = "<tr>";
-            row += "<td>" + entry.rufzeichen + "</td>";
-            row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
-            row += "<td>" + entry.betriebsart + (entry.talkgroup ? " TG" + entry.talkgroup : "") + "</td>";
-            row += "<td>" + formattedDate + "</td>";
-            row += "<td>" + time_since + "</td>";
-            row += "</tr>";
-            $(target).append(row);
         }
-    });
-</script>
+
+        window.onload = checkBetriebsart;
+
+        function updateTable() {
+            $.getJSON("/data", function(data) {
+                var tableBody = $("table tbody");
+                tableBody.empty();
+                $.each(data.data, function(index, entry) {
+                    var now = new Date();
+                    var timestamp = new Date(entry.zeitstempel + "Z");
+                    var diff = now - timestamp;
+
+                    var formattedTimestamp = ("0" + timestamp.getDate()).slice(-2) + "." +
+                                        ("0" + (timestamp.getMonth() + 1)).slice(-2) + "." +
+                                        timestamp.getFullYear() + " " +
+                                        ("0" + timestamp.getHours()).slice(-2) + ":" +
+                                        ("0" + timestamp.getMinutes()).slice(-2);
+
+                    var formattedFrequency = parseFloat(entry.frequenz).toFixed(4).replace('.', ',');
+
+                    var diffMinutes = Math.floor((diff / 1000) / 60);
+                    var diffHours = Math.floor(diffMinutes / 60);
+                    var diffDisplay;
+                    if (diffHours > 0) {
+                        var remainingMinutes = diffMinutes - (diffHours * 60);
+                        diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
+                    } else {
+                        diffDisplay = diffMinutes + " Minute(n)";
+                    }
+
+                    var betriebsartDisplay = entry.betriebsart;
+                    if (entry.betriebsart === 'DMR' && entry.talkgroup) {
+                        betriebsartDisplay += ' TG' + entry.talkgroup;
+                    }
+
+                    var row = "<tr><td>" + entry.rufzeichen + "</td><td>" + formattedFrequency + " MHz</td><td>" + betriebsartDisplay + "</td><td>" + formattedTimestamp + "</td><td>" + diffDisplay + "</td></tr>";
+                    tableBody.append(row);
+                });
+            });
+        }
+
+        updateTable();
+        setInterval(updateTable, 10000);
+    </script>
 </body>
 </html>

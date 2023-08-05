@@ -26,10 +26,10 @@ def cleanup_thread():
     while True:
         now = datetime.datetime.utcnow()
 
-        # Entfernen Sie Einträge, die älter als 10 Minuten sind
+        # Entfernen Sie Einträge, die älter als 24 Stunden sind
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM eintraege WHERE strftime('%s', 'now') - strftime('%s', zeitstempel) > 600")
+        cursor.execute("DELETE FROM eintraege WHERE strftime('%s', 'now') - strftime('%s', zeitstempel) > 86400")
         conn.commit()
         conn.close()
 
@@ -81,7 +81,8 @@ def data():
     rows = cursor.fetchall()
     conn.close()
 
-    data = []
+    new_entries = []
+    old_entries = []
     for row in rows:
         rufzeichen, frequenz, betriebsart, talkgroup, zeitstempel = row
         entry = {
@@ -91,9 +92,15 @@ def data():
             'talkgroup': talkgroup,
             'zeitstempel': zeitstempel,
         }
-        data.append(entry)
+        if (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(zeitstempel)).total_seconds() < 600:
+            new_entries.append(entry)
+        else:
+            old_entries.append(entry)
 
-    return {'data': data}
+    return {
+        'new_entries': new_entries,
+        'old_entries': old_entries
+    }
 
 if __name__ == '__main__':
     create_table()

@@ -89,6 +89,7 @@
     
 
 
+
 <script>
     $(document).ready(function(){
         $.get("/data", function(data) {
@@ -111,16 +112,18 @@
         
         // Funktion zum Hinzufügen einer Zeile
         function addRow(entry, target) {
+            var date = new Date(entry.zeitstempel);
+            var formattedDate = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
             var row = "<tr>";
             row += "<td>" + entry.rufzeichen + "</td>";
             row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
             row += "<td>" + entry.betriebsart + (entry.talkgroup ? " TG" + entry.talkgroup : "") + "</td>";
-            row += "<td>" + new Date(entry.zeitstempel).toLocaleString('de-DE') + "</td>";
-            row += "<td>" + timeSince(new Date(entry.zeitstempel)) + "</td>";
+            row += "<td>" + formattedDate + "</td>";
+            row += "<td>" + timeSince(date) + "</td>";
             row += "</tr>";
             $(target).append(row);
         }
-
+        
         // Funktion zur Berechnung der Zeit seit dem Eintrag
         function timeSince(date) {
             var seconds = Math.floor((new Date() - date) / 1000);

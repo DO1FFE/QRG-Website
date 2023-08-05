@@ -86,7 +86,7 @@
         </tbody>
     </table>
 
- <script>
+<script>
     $(document).ready(function(){
         $.get("/data", function(data) {
             var new_entries = data.new_entries;
@@ -125,7 +125,7 @@
             row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
             row += "<td>" + entry.betriebsart + (entry.talkgroup ? " TG" + entry.talkgroup : "") + "</td>";
             row += "<td>" + formattedDate + "</td>";
-            row += "<td>" + time_since + "</td>";
+            row += "<td>" + time_since + "</td>"; // Verwenden Sie die lokale Variable "time_since"
             row += "</tr>";
             $(target).append(row);
         }

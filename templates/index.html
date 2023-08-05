@@ -112,8 +112,11 @@
         
         // Funktion zum Hinzufügen einer Zeile
         function addRow(entry, target) {
-            var date = new Date(entry.zeitstempel);
-            var formattedDate = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            var date = new Date(entry.zeitstempel + 'Z'); // Hinzufügen eines 'Z', um UTC-Zeit anzugeben
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); // Anpassen an die lokale Zeitzone
+            var options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+            var formattedDate = new Intl.DateTimeFormat('de-DE', options).format(date);
+
             var row = "<tr>";
             row += "<td>" + entry.rufzeichen + "</td>";
             row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";

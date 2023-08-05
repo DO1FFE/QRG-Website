@@ -108,12 +108,24 @@
         
         // Funktion zum Hinzufügen einer Zeile
         function addRow(entry, target) {
+            var zeitstempel = new Date(entry.zeitstempel);
+            var formattedDate = zeitstempel.getDate().toString().padStart(2, '0') + "." +
+                                (zeitstempel.getMonth() + 1).toString().padStart(2, '0') + "." +
+                                zeitstempel.getFullYear() + " " +
+                                zeitstempel.getHours().toString().padStart(2, '0') + ":" +
+                                zeitstempel.getMinutes().toString().padStart(2, '0');
+
+            var currentTime = new Date();
+            var timeDifference = currentTime - zeitstempel; // in milliseconds
+            var minutesSinceEntry = Math.floor(timeDifference / 60000);
+            var time_since = minutesSinceEntry + " Minuten";
+
             var row = "<tr>";
             row += "<td>" + entry.rufzeichen + "</td>";
             row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
             row += "<td>" + entry.betriebsart + (entry.talkgroup ? " TG" + entry.talkgroup : "") + "</td>";
-            row += "<td>" + new Date(entry.zeitstempel).toLocaleString('de-DE') + "</td>";
-            row += "<td>" + entry.time_since + "</td>";
+            row += "<td>" + formattedDate + "</td>";
+            row += "<td>" + time_since + "</td>";
             row += "</tr>";
             $(target).append(row);
         }

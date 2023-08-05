@@ -59,10 +59,10 @@
         <input type="number" step="0.0001" id="frequenz" name="frequenz" size="10"><br>
         <label for="betriebsart">Betriebsart:</label><br>
         <select id="betriebsart" name="betriebsart" onchange="checkBetriebsart()" style="max-width: 100%;">
+            <option value="DMR">DMR</option>
             <option value="FM">FM</option>
             <option value="SSB">SSB</option>
             <option value="FT8">FT8</option>
-			<option value="DMR">DMR</option>
             <option value="D-STAR">D-STAR</option>
             <option value="C4FM">C4FM</option>
         </select><br>
@@ -88,6 +88,7 @@
 
     
 
+
 <script>
     $(document).ready(function(){
         $.get("/data", function(data) {
@@ -96,15 +97,15 @@
             
             // Hinzufügen der neuen Einträge
             new_entries.forEach(function(entry) {
-                addRow(entry, "#new-entries");
+                addRow(entry, "tbody");
             });
 
             // Hinzufügen einer Trennlinie
-            $("#new-entries").append('<tr><td colspan="4" style="background-color: #999;"></td></tr>');
+            $("tbody").append('<tr><td colspan="5" style="background-color: #999;"></td></tr>');
             
             // Hinzufügen der alten Einträge (ausgegraut)
             old_entries.forEach(function(entry) {
-                addRow(entry, "#old-entries");
+                addRow(entry, "tbody");
             });
         });
         
@@ -113,10 +114,37 @@
             var row = "<tr>";
             row += "<td>" + entry.rufzeichen + "</td>";
             row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
-            row += "<td>" + entry.betriebsart + "</td>";
+            row += "<td>" + entry.betriebsart + (entry.talkgroup ? " TG" + entry.talkgroup : "") + "</td>";
             row += "<td>" + new Date(entry.zeitstempel).toLocaleString('de-DE') + "</td>";
+            row += "<td>" + timeSince(new Date(entry.zeitstempel)) + "</td>";
             row += "</tr>";
             $(target).append(row);
+        }
+
+        // Funktion zur Berechnung der Zeit seit dem Eintrag
+        function timeSince(date) {
+            var seconds = Math.floor((new Date() - date) / 1000);
+            var interval = Math.floor(seconds / 31536000);
+            if (interval > 1) {
+                return interval + " Jahren";
+            }
+            interval = Math.floor(seconds / 2592000);
+            if (interval > 1) {
+                return interval + " Monaten";
+            }
+            interval = Math.floor(seconds / 86400);
+            if (interval > 1) {
+                return interval + " Tagen";
+            }
+            interval = Math.floor(seconds / 3600);
+            if (interval > 1) {
+                return interval + " Stunden";
+            }
+            interval = Math.floor(seconds / 60);
+            if (interval > 1) {
+                return interval + " Minuten";
+            }
+            return Math.floor(seconds) + " Sekunden";
         }
     });
 </script>

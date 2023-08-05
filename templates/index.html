@@ -59,10 +59,10 @@
         <input type="number" step="0.0001" id="frequenz" name="frequenz" size="10"><br>
         <label for="betriebsart">Betriebsart:</label><br>
         <select id="betriebsart" name="betriebsart" onchange="checkBetriebsart()" style="max-width: 100%;">
-            <option value="DMR">DMR</option>
             <option value="FM">FM</option>
             <option value="SSB">SSB</option>
             <option value="FT8">FT8</option>
+			<option value="DMR">DMR</option>
             <option value="D-STAR">D-STAR</option>
             <option value="C4FM">C4FM</option>
         </select><br>
@@ -86,58 +86,39 @@
         </tbody>
     </table>
 
-    <script>
-        function checkBetriebsart() {
-            var selectedBetriebsart = document.getElementById('betriebsart').value;
-            if (selectedBetriebsart === 'DMR') {
-                document.getElementById('talkgroupDiv').style.display = 'block';
-            } else {
-                document.getElementById('talkgroupDiv').style.display = 'none';
-            }
-        }
+    
 
-        window.onload = checkBetriebsart;
-
-        function updateTable() {
-            $.getJSON("/data", function(data) {
-                var tableBody = $("table tbody");
-                tableBody.empty();
-                $.each(data.data, function(index, entry) {
-                    var now = new Date();
-                    var timestamp = new Date(entry.zeitstempel + "Z");
-                    var diff = now - timestamp;
-
-                    var formattedTimestamp = ("0" + timestamp.getDate()).slice(-2) + "." +
-                                        ("0" + (timestamp.getMonth() + 1)).slice(-2) + "." +
-                                        timestamp.getFullYear() + " " +
-                                        ("0" + timestamp.getHours()).slice(-2) + ":" +
-                                        ("0" + timestamp.getMinutes()).slice(-2);
-
-                    var formattedFrequency = parseFloat(entry.frequenz).toFixed(4).replace('.', ',');
-
-                    var diffMinutes = Math.floor((diff / 1000) / 60);
-                    var diffHours = Math.floor(diffMinutes / 60);
-                    var diffDisplay;
-                    if (diffHours > 0) {
-                        var remainingMinutes = diffMinutes - (diffHours * 60);
-                        diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
-                    } else {
-                        diffDisplay = diffMinutes + " Minute(n)";
-                    }
-
-                    var betriebsartDisplay = entry.betriebsart;
-                    if (entry.betriebsart === 'DMR' && entry.talkgroup) {
-                        betriebsartDisplay += ' TG' + entry.talkgroup;
-                    }
-
-                    var row = "<tr><td>" + entry.rufzeichen + "</td><td>" + formattedFrequency + " MHz</td><td>" + betriebsartDisplay + "</td><td>" + formattedTimestamp + "</td><td>" + diffDisplay + "</td></tr>";
-                    tableBody.append(row);
-                });
+<script>
+    $(document).ready(function(){
+        $.get("/data", function(data) {
+            var new_entries = data.new_entries;
+            var old_entries = data.old_entries;
+            
+            // Hinzufügen der neuen Einträge
+            new_entries.forEach(function(entry) {
+                addRow(entry, "#new-entries");
             });
-        }
 
-        updateTable();
-        setInterval(updateTable, 30000);
-    </script>
+            // Hinzufügen einer Trennlinie
+            $("#new-entries").append('<tr><td colspan="4" style="background-color: #999;"></td></tr>');
+            
+            // Hinzufügen der alten Einträge (ausgegraut)
+            old_entries.forEach(function(entry) {
+                addRow(entry, "#old-entries");
+            });
+        });
+        
+        // Funktion zum Hinzufügen einer Zeile
+        function addRow(entry, target) {
+            var row = "<tr>";
+            row += "<td>" + entry.rufzeichen + "</td>";
+            row += "<td>" + entry.frequenz.toFixed(3).replace('.', ',') + " MHz</td>";
+            row += "<td>" + entry.betriebsart + "</td>";
+            row += "<td>" + new Date(entry.zeitstempel).toLocaleString('de-DE') + "</td>";
+            row += "</tr>";
+            $(target).append(row);
+        }
+    });
+</script>
 </body>
 </html>

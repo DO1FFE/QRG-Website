@@ -29,6 +29,9 @@
         tr:nth-child(even) {
             background-color: #e6f7ff;
         }
+        .gray-text {
+            color: gray;
+        }
         label, input[type="text"], input[type="number"], select, input[type="submit"] {
             margin-bottom: 10px;
         }
@@ -118,11 +121,17 @@
                     var diffMinutes = Math.floor((diff / 1000) / 60);
                     var diffHours = Math.floor(diffMinutes / 60);
                     var diffDisplay;
+                    var colorClass = '';
+                    
                     if (diffHours > 0) {
                         var remainingMinutes = diffMinutes - (diffHours * 60);
                         diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
+                        colorClass = 'gray-text';
                     } else {
                         diffDisplay = diffMinutes + " Minute(n)";
+                        if (diffMinutes > 10) {
+                            colorClass = 'gray-text';
+                        }
                     }
 
                     var betriebsartDisplay = entry.betriebsart;
@@ -130,7 +139,7 @@
                         betriebsartDisplay += ' TG' + entry.talkgroup;
                     }
 
-                    var row = "<tr><td>" + entry.rufzeichen + "</td><td>" + formattedFrequency + " MHz</td><td>" + betriebsartDisplay + "</td><td>" + formattedTimestamp + "</td><td>" + diffDisplay + "</td></tr>";
+                    var row = "<tr class='" + colorClass + "'><td>" + entry.rufzeichen + "</td><td>" + formattedFrequency + " MHz</td><td>" + betriebsartDisplay + "</td><td>" + formattedTimestamp + "</td><td>" + diffDisplay + "</td></tr>";
                     tableBody.append(row);
                 });
             });

@@ -29,8 +29,8 @@
         tr:nth-child(even) {
             background-color: #e6f7ff;
         }
-        .gray-text {
-            color: gray;
+        .gray-background {
+            background-color: #d3d3d3;
         }
         label, input[type="text"], input[type="number"], select, input[type="submit"] {
             margin-bottom: 10px;
@@ -126,11 +126,11 @@
                     if (diffHours > 0) {
                         var remainingMinutes = diffMinutes - (diffHours * 60);
                         diffDisplay = diffHours + " Stunde(n) " + remainingMinutes + " Minute(n)";
-                        colorClass = 'gray-text';
+                        colorClass = 'gray-background';
                     } else {
                         diffDisplay = diffMinutes + " Minute(n)";
                         if (diffMinutes > 10) {
-                            colorClass = 'gray-text';
+                            colorClass = 'gray-background';
                         }
                     }
 
